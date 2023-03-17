@@ -1,3 +1,4 @@
 inventory.yml
 .vault_pass
 .become_password
+*.key

@@ -1,0 +1,33 @@
+http:
+  middlewares:
+    default-auth:
+      chain:
+        middlewares:
+        - default-security-headers
+        - authelia@file
+        - default-security-headers
+    default:
+      chain:
+        middlewares:
+        - deny-tor
+        - default-security-headers
+    deny-tor:
+      plugin:
+        torblock:
+          AddressListURL: https://check.torproject.org/exit-addresses
+          Enabled: "true"
+          UpdateInterval: "3600"
+    default-security-headers:
+      headers:
+        customResponseHeaders:
+          X-Robots-Tag: "none,noarchive,nosnippet,notranslate,noimageindex"
+        browserXssFilter: true # X-XSS-Protection=1; mode=block
+        contentTypeNosniff: true # X-Content-Type-Options=nosniff
+        frameDeny: true # X-Frame-Options=deny
+        referrerPolicy: "strict-origin-when-cross-origin"
+        sslRedirect: true # Allow only https requests
+        stsIncludeSubdomains: true # Add includeSubdomains to the Strict-Transport-Security header
+        stsPreload: true # Add preload flag appended to the Strict-Transport-Security header
+        stsSeconds: 63072000
+        #                stsIncludeSubdomains: true
+        customFrameOptionsValue: https://nextcloud.{DOMAIN}

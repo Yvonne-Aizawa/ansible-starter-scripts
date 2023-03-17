@@ -1,0 +1,35 @@
+---
+- hosts: "{{ host }}"
+  gather_facts: true
+  tasks:
+    - name: Include Vault file
+      ansible.builtin.include_vars:
+        file: ../vars/vault.yml
+    - name: make sure that flame folder exists on remote
+      ansible.builtin.file:
+        path: /home/{{ user }}/flame/
+        state: directory
+        mode: '777'
+
+    - name: Ensure directory structure exists on host
+      ansible.builtin.file:
+        path: 'template/{{ item.path }}'
+        state: directory
+        mode: '777'
+      with_community.general.filetree: 'templates/'
+      when: item.state == 'directory'
+
+    - name: Ensure files are populated from templates
+      ansible.builtin.template:
+        src: '{{ item.src }}'
+        dest: '/home/{{ user }}/flame/{{ item.path }}'
+        mode: '777'
+      with_community.general.filetree: 'templates/'
+      when: item.state == 'file'
+    - name: Create docker_default_network
+      community.docker.docker_network:
+        name: docker_default_network
+    - name: Start the stack
+      community.docker.docker_compose:
+        project_src: "/home/{{user}}/flame"
+        restarted: true
