@@ -24,6 +24,9 @@ services:
       # - '--entryPoints.http.address=:8080/tcp'
       - '--entryPoints.http.http.redirections.entryPoint.to=https'
       - '--entryPoints.http.http.redirections.entryPoint.scheme=https'
+      - '--experimental.hub=true'
+      - '--hub.tls.insecure=true'
+      - '--metrics.prometheus.addrouterslabels=true'
     restart: unless-stopped
     networks:
       - docker_default_network
@@ -39,8 +42,9 @@ services:
       traefik.http.routers.traefik.entrypoints: websecure
       traefik.http.routers.traefik.rule: Host(`traefik.${DOMAIN_NAME}`)
       traefik.http.routers.traefik.tls: true
-      traefik.http.routers.traefik.tls.certresolver: production
-      "traefik.http.routers.traefik.tls.domains[0].main": traefik.${DOMAIN_NAME}
+      traefik.http.routers.traefik.tls.certresolver: {{ cert_provider }}
+      traefik.http.routers.traefik.tls.domains[0].main: ${DOMAIN}
+      traefik.http.routers.traefik.tls.domains[0].sans: traefik.${DOMAIN_NAME}
       traefik.http.routers.traefik.service: api@internal
       traefik.http.routers.traefik.middlewares: default-auth@file
       # flame dashboard labels
@@ -54,6 +58,23 @@ services:
       - ../config/traefik/logs:/var/log/traefik
       - ../config/traefik/keys:/keys:ro
       - /var/run/docker.sock:/var/run/docker.sock
+  hub-agent:
+    image: ghcr.io/traefik/hub-agent-traefik:v1.0.0
+    pull_policy: always
+    container_name: hub-agent
+    restart: "on-failure"
+    command:
+      - run
+      - --hub.token={{ traefik_hub_token}}
+      - --auth-server.advertise-url=http://hub-agent
+      - --traefik.host=traefik
+      - --traefik.tls.insecure=true
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+    - docker_default_network
+    depends_on:
+      - reverse-proxy
   docker-host:
     # this is so traefik can access virtual machines and other devices on the host network (i think?)
     container_name: docker-host
@@ -95,7 +116,7 @@ services:
       traefik.frontend.headers.STSIncludeSubdomains: "true"
       traefik.frontend.headers.STSPreload: "true"
 
-      traefik.http.routers.authelia.tls.certresolver: production
+      traefik.http.routers.authelia.tls.certresolver: {{ cert_provider }}
       "traefik.http.routers.authelia.tls.domains[0].main": auth.${DOMAIN_NAME}
       traefik.http.middlewares.authelia.forwardauth.address: http://authelia:9091/api/verify?rd=https://auth.${DOMAIN_NAME}
       traefik.http.middlewares.authelia.forwardauth.trustForwardHeader: true
@@ -107,7 +128,7 @@ services:
       disable: true
     depends_on:
       - redis
-      - mariadb
+      # - mariadb
       - openldap
   redis:
     # authelia uses this for saving login tokens so they persist during server resets
@@ -120,17 +141,17 @@ services:
     networks:
       - docker_default_network
     restart: unless-stopped
-  mariadb:
-    # this is used by authelia to store users (or does it like i have openldap setup)
-    env_file:
-      - .env
-    container_name: mariadb
-    image: linuxserver/mariadb:latest
-    volumes:
-      - ../config/traefik/mariadb:/config
-    networks:
-      - docker_default_network
-    restart: unless-stopped
+  # mariadb:
+  #   # this is used by authelia to store users (or does it like i have openldap setup)
+  #   env_file:
+  #     - .env
+  #   container_name: mariadb
+  #   image: linuxserver/mariadb:latest
+  #   volumes:
+  #     - ../config/traefik/mariadb:/config
+  #   networks:
+  #     - docker_default_network
+  #   restart: unless-stopped
   openldap:
     # for shared users between services
     image: osixia/openldap:latest
@@ -166,7 +187,7 @@ services:
       traefik.http.routers.phpldapadmin.entrypoints: websecure
       traefik.http.routers.phpldapadmin.rule: Host(`phpldapadmin.${DOMAIN_NAME}`)
       traefik.http.routers.phpldapadmin.tls: true
-      traefik.http.routers.phpldapadmin.tls.certresolver: production
+      traefik.http.routers.phpldapadmin.tls.certresolver: {{ cert_provider }}
 
       "traefik.http.routers.phpldapadmin.tls.domains[0].main": phpldapadmin.${DOMAIN_NAME}
       #  traefik.http.routers.phpldapadmin.service: phpldapadmin
@@ -177,6 +198,8 @@ services:
       flame.name: phpldapadmin
       flame.url: https://phpldapadmin.${DOMAIN_NAME}
       flame.icon: phpldapadmin # optional, default is "docker"
+    ports:
+      - 8787:80
     networks:
       - docker_default_network
     depends_on:

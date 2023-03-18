@@ -1,0 +1,38 @@
+version: "3"
+
+services:
+
+  gotify:
+    hostname: gotify
+    networks:
+      - docker_default_network
+    restart: unless-stopped
+    container_name: gotify
+    image: gotify/server
+    volumes:
+      - "../config/gotify/data:/app/data"
+    ports:
+      - 1025:1025
+    labels:
+      # traefik labels
+      traefik.enable: true
+      traefik.http.routers.gotify.entrypoints: websecure
+      traefik.http.routers.gotify.rule: Host(`gotify.${DOMAIN}`)
+      traefik.http.routers.gotify.tls: true
+      traefik.http.routers.gotify.tls.certresolver: {{cert_provider}}
+      "traefik.http.routers.gotify.tls.domains[0].main": gotify.${DOMAIN}
+      traefik.http.routers.gotify.middlewares: default-auth@file
+
+     # traefik.http.routers.gotify.service: gotify
+     # traefik.http.services.gotify.loadbalancer.server.port: 9000 # if needed
+      # flame dashboard labels
+      flame.type: application
+      flame.name: gotify
+      flame.url: https://gotify.${DOMAIN}
+      flame.icon: message # optional, default is "docker"
+    # authentik labels
+
+
+networks:
+  docker_default_network:
+    external: true

@@ -1,0 +1,14 @@
+- name: Install cockpit
+  hosts: "{{host}}"
+  become: true
+  tasks:
+      - name: Install cockpit
+        ansible.builtin.apt:
+            name: cockpit
+            state: present
+            update_cache: true
+      - name: Enable cockpit service
+        ansible.builtin.systemd:
+            name: cockpit
+            enabled: true
+            masked: false

@@ -1,0 +1,20 @@
+- name: Install from clean machine
+  hosts: "{{host}}"
+- name: Update the machine
+  ansible.builtin.import_playbook: ../update/playbook.yml
+- name: Update the power settings
+  ansible.builtin.import_playbook: ../powersettings/playbook.yml
+- name: Install docker
+  ansible.builtin.import_playbook: ../docker/playbook.yml
+- name: Install cockpit
+  ansible.builtin.import_playbook: ../cockpit/playbook.yml
+- name: Install reverse proxy
+  ansible.builtin.import_playbook: ../proxy/playbook.yml
+- name: Partly install nextcloud
+  ansible.builtin.import_playbook: ../nextcloud/playbook.yml # has errs
+- name: Install Flame Dashboard
+  ansible.builtin.import_playbook: ../flame/playbook.yml
+- name: Install Headscale
+  ansible.builtin.import_playbook: ../headscale/playbook.yml # has errs
+- name: Install Gotify
+  ansible.builtin.import_playbook: ../gotify/playbook.yml

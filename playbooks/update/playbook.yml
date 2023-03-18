@@ -1,0 +1,9 @@
+- name: update with apt
+  hosts: "{{host}}"
+  become: yes
+  tasks:
+    - name: ensure machine has been updated
+      ansible.builtin.apt:
+        name: "*"
+        state: latest
+        update_cache: true

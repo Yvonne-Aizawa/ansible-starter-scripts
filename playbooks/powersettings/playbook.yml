@@ -1,0 +1,11 @@
+- name: Update powersettings
+  hosts: "{{host}}"
+  become: true
+  tasks:
+    - name: Update Powersettings
+      ansible.builtin.lineinfile:
+        dest: /etc/systemd/logind.conf
+        line: 'HandleLidSwitch=ignore'
+
+# "sed -i 's/#HandleLidSwitch=Suspend /HandleLidSwitch=ignore/g' /etc/systemd/logind.conf"
+# /etc/systemd/logind.conf

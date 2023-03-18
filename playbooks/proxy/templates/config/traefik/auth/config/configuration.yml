@@ -41,7 +41,7 @@ authentication_backend:
     display_name_attribute: displayName
     user: CN=admin,DC=ldap,DC=yvonnetake,DC=nl
 
-    password: "serenatake"
+    password: {{ ldap_admin_pass }}
 
 access_control:
   default_policy: two_factor
@@ -114,18 +114,18 @@ regulation:
   ban_time: 1 # ban for 5 min
 
 
-# storage:
-#   encryption_key: "{{authelia_storage_encryption_key}}"
-#   mysql:
-#     host: mariadb
-#     port: 3306
-#     database: authelia
-#     username: authelia
-#     password: "{{mysql_password}}"
 storage:
-  encryption_key:  {{authelia_storage_encryption_key}} # Now required
-  local:
-    path: /config/db.sqlite3
+  encryption_key: "{{authelia_storage_encryption_key}}"
+  mysql:
+    host: db
+    port: 3306
+    database: authelia
+    username: authelia
+    password: "{{ mysql_authelia_pass}}"
+# storage:
+#   encryption_key:  {{authelia_storage_encryption_key}} # Now required
+#   local:
+#     path: /config/db.sqlite3
 
 notifier:
   filesystem:
