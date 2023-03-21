@@ -24,9 +24,9 @@ services:
       # - '--entryPoints.http.address=:8080/tcp'
       - '--entryPoints.http.http.redirections.entryPoint.to=https'
       - '--entryPoints.http.http.redirections.entryPoint.scheme=https'
-      - '--experimental.hub=true'
-      - '--hub.tls.insecure=true'
-      - '--metrics.prometheus.addrouterslabels=true'
+      # - '--experimental.hub=true'
+      # - '--hub.tls.insecure=true'
+      # - '--metrics.prometheus.addrouterslabels=true'
     restart: unless-stopped
     networks:
       - docker_default_network
@@ -43,7 +43,7 @@ services:
       traefik.http.routers.traefik.rule: Host(`traefik.${DOMAIN_NAME}`)
       traefik.http.routers.traefik.tls: true
       traefik.http.routers.traefik.tls.certresolver: {{ cert_provider }}
-      traefik.http.routers.traefik.tls.domains[0].main: ${DOMAIN}
+      traefik.http.routers.traefik.tls.domains[0].main: ${DOMAIN_NAME}
       traefik.http.routers.traefik.tls.domains[0].sans: traefik.${DOMAIN_NAME}
       traefik.http.routers.traefik.service: api@internal
       traefik.http.routers.traefik.middlewares: default-auth@file
@@ -58,23 +58,23 @@ services:
       - ../config/traefik/logs:/var/log/traefik
       - ../config/traefik/keys:/keys:ro
       - /var/run/docker.sock:/var/run/docker.sock
-  hub-agent:
-    image: ghcr.io/traefik/hub-agent-traefik:v1.0.0
-    pull_policy: always
-    container_name: hub-agent
-    restart: "on-failure"
-    command:
-      - run
-      - --hub.token={{ traefik_hub_token}}
-      - --auth-server.advertise-url=http://hub-agent
-      - --traefik.host=traefik
-      - --traefik.tls.insecure=true
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-    networks:
-    - docker_default_network
-    depends_on:
-      - reverse-proxy
+  # hub-agent:
+  #   image: ghcr.io/traefik/hub-agent-traefik:v1.0.0
+  #   pull_policy: always
+  #   container_name: hub-agent
+  #   restart: "on-failure"
+  #   command:
+  #     - run
+  #     - --hub.token={{ traefik_hub_token}}
+  #     - --auth-server.advertise-url=http://hub-agent
+  #     - --traefik.host=traefik
+  #     - --traefik.tls.insecure=true
+  #   volumes:
+  #     - /var/run/docker.sock:/var/run/docker.sock
+  #   networks:
+  #   - docker_default_network
+  #   depends_on:
+  #     - reverse-proxy
   docker-host:
     # this is so traefik can access virtual machines and other devices on the host network (i think?)
     container_name: docker-host
