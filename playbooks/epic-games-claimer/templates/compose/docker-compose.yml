@@ -1,0 +1,22 @@
+version: '3.3'
+services:
+  epicgames-freegames:
+    hostname: "epic-claimer"
+    networks:
+      - docker_default_network
+    container_name: epic-claimer
+    restart: unless-stopped
+    volumes:
+      - '../config/epicgames/:/usr/app/config:rw'
+    image: 'ghcr.io/claabs/epicgames-freegames-node:latest'
+    labels:
+      traefik.enable: true
+      traefik.http.routers.epic.entrypoints: websecure
+      traefik.http.routers.epic.rule: Host(`epic.${DOMAIN_NAME}`)
+      traefik.http.routers.epic.tls: true
+      traefik.http.routers.epic.tls.certresolver: production
+      "traefik.http.routers.epic.tls.domains[0].main": epic.${DOMAIN_NAME}
+      traefik.http.routers.epic.middlewares: default-auth@file 
+networks:
+  docker_default_network:
+    external: true

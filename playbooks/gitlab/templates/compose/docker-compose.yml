@@ -1,0 +1,39 @@
+version: '3.6'
+services:
+  web:
+    image: 'gitlab/gitlab-ce:latest'
+    restart: always
+    container_name: gitlab
+    networks:
+      - docker_default_network
+    hostname: gitlab
+    environment:
+      GITLAB_OMNIBUS_CONFIG: |
+        external_url 'https://gitlab.${DOMAIN_NAME}:8929'
+        gitlab_rails['gitlab_shell_ssh_port'] = 2224
+    ports:
+      - '2224:22'
+    labels:
+      traefik.enable: true
+      traefik.http.routers.gitlab.entrypoints: websecure
+      traefik.http.routers.gitlab.rule: Host(`gitlab.${DOMAIN_NAME}`)
+      traefik.http.routers.gitlab.tls: true
+      traefik.http.routers.gitlab.tls.certresolver: {{ cert_provider }}
+      traefik.http.routers.gitlab.tls.domains[0].main: ${DOMAIN}
+      traefik.http.routers.gitlab.tls.domains[0].sans: gitlab.${DOMAIN_NAME}
+      # traefik.http.routers.gitlab.middlewares: default-auth@file
+      traefik.http.routers.gitlab.service: gitlab
+      traefik.http.services.gitlab.loadbalancer.server.port: 80 # if needed
+      # flame dashboard labels
+      flame.type: application
+      flame.name: gitlab
+      flame.url: https://gitlab.${DOMAIN_NAME}
+      flame.icon: server # optional, default is "docker"
+    volumes:
+      - '../config/gitlab/config:/etc/gitlab'
+      - '../config/gitlab/logs:/var/log/gitlab'
+      - '../config/gitlab/data:/var/opt/gitlab'
+    shm_size: '256m'
+networks:
+    docker_default_network:
+      external: true         

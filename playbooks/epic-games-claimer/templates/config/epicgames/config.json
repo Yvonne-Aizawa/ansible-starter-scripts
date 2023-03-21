@@ -1,0 +1,26 @@
+{
+  "testNotifiers": false,
+  "searchStrategy": "promotion",
+  "runOnStartup": true,
+  "cronSchedule": "0 * * * *",
+  "logLevel": "info",
+  "webPortalConfig": {
+    "baseUrl": "https://epic.{{domain}}",
+  },
+  "accounts": [
+    {
+      "email": "{{epic_games_email}}",
+      "password": "{{epic_games_pass}}",
+      "totp": "{{epic_games_totp}}"
+    },
+  ],
+  "notifiers": [
+    // You may configure as many of any notifier as needed
+    // Here are some examples of each type
+    {
+      "type": "gotify",
+      "apiUrl": "http://gotify:80",
+      "token": "{{epic_games_gotify}}",
+    },
+  ],
+}
