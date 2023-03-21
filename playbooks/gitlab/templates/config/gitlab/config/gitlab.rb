@@ -804,7 +804,7 @@ gitlab_rails['gitlab_default_theme'] = 2
 ##! Docs: https://docs.gitlab.com/ee/administration/packages/container_registry.html
 ################################################################################
 
-# registry_external_url 'https://registry.example.com'
+# registry_external_url 'https://registry.gitlab.yvonnetake.nl'
 
 ### Settings used by GitLab application
 # gitlab_rails['registry_enabled'] = true
@@ -830,7 +830,7 @@ gitlab_rails['gitlab_default_theme'] = 2
 # registry['uid'] = nil
 # registry['gid'] = nil
 # registry['dir'] = "/var/opt/gitlab/registry"
-# registry['registry_http_addr'] = "127.0.0.1:5000"
+# registry['registry_http_addr'] = "http:"
 # registry['debug_addr'] = "localhost:5001"
 # registry['log_directory'] = "/var/log/gitlab/registry"
 # registry['env_directory'] = "/opt/gitlab/etc/registry/env"
@@ -2021,7 +2021,8 @@ nginx['listen_https'] = false
 # `registry_nginx['some_setting']` and should be set separately.
 
 # Below you can find settings that are exclusive to "Registry NGINX"
-# registry_nginx['enable'] = false
+registry_nginx['enable'] = false
+registry_nginx['listen_https'] = false
 
 # registry_nginx['proxy_set_headers'] = {
 #  "Host" => "$http_host",

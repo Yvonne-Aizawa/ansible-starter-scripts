@@ -1,0 +1,30 @@
+version: '3.3'
+services:
+   archiveTeamWarrior:
+    image: atdr.meo.ws/archiveteam/warrior-dockerfile
+    container_name: archiveTeamWarrior
+    hostname: archiveTeamWarrior
+    networks:
+      - docker_default_network
+    restart: always
+    volumes:
+      - /volume1/docker/archive:/projects
+    labels:
+          traefik.enable: true
+          traefik.http.routers.warrior.entrypoints: websecure
+          traefik.http.routers.warrior.rule: Host(`warrior.${DOMAIN}`)
+          traefik.http.routers.warrior.tls: true
+          traefik.http.routers.warrior.tls.certresolver: production
+          "traefik.http.routers.warrior.tls.domains[0].main": warrior.${DOMAIN}
+        #  traefik.http.routers.warrior.service: warrior
+        #  traefik.http.services.warrior.loadbalancer.server.port: 1337 # if needed
+          traefik.http.routers.warrior.middlewares: default-auth@file
+      # flame dashboard labels
+          flame.type: application
+          flame.name: warrior
+          flame.url: https://warrior.${DOMAIN}
+          flame.icon: warrior # optional, default is "docker"
+        
+networks:
+    docker_default_network:
+      external: true
