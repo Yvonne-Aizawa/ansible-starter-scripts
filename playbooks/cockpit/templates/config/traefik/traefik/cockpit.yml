@@ -1,0 +1,35 @@
+http:
+  routers:
+    cockpit:
+      rule: "Host(`cockpit.{{domain}}`)"
+      entrypoints:
+      - "websecure"
+      service: cockpit
+      middlewares:
+      - cockpit-chain
+      tls:
+        certresolver: "production"
+
+  services:
+    cockpit:
+      loadBalancer:
+        servers:
+        - url: "https://docker-host:9090" # Use the host's IP address if Traefik runs outside the host network
+  middlewares:
+    cockpit-secure-headers:
+      headers:
+        hostsProxyHeaders:
+        - "X-Forwarded-Host"
+        referrerPolicy: "same-origin"
+
+    https-redirect:
+      redirectscheme:
+        scheme: https
+
+    cockpit-chain:
+      chain:
+        middlewares:
+        # - ... (e.g. rate limiting middleware)
+        - authelia@file
+        - https-redirect
+        - cockpit-secure-headers

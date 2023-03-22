@@ -1,0 +1,62 @@
+---
+- name: install vaultwarden
+  hosts: "{{ host }}"
+  gather_facts: true
+  become: true
+  tasks:
+    - name: Starting to install vaultwarden
+      ansible.builtin.include_vars:
+        file: ../vars/vault.yml
+    - name: Make sure that project root exists
+      ansible.builtin.file:
+        path: "{{ project_root }}vaultwarden"
+        state: directory
+        mode: '777'
+    - name: Make sure that config root exists
+      ansible.builtin.file:
+        path: "{{ config_root }}"
+        state: directory
+        mode: '777'
+
+
+    - name: Ensure directory structure exists on host
+      ansible.builtin.file:
+        path: '{{project_root}}/{{ item.path }}'
+        state: directory
+        mode: '777'
+      with_community.general.filetree: 'templates/compose/'
+      when: item.state == 'directory'
+
+    - name: Copy over the compose files
+      ansible.builtin.template:
+        src: '{{ item.src }}'
+        dest: '{{ project_root }}vaultwarden/{{item.path}}'
+        mode: '777'
+      with_community.general.filetree: 'templates/compose/'
+      when: item.state == 'file'
+
+
+
+
+    - name: Ensure directory structure exists on host
+      ansible.builtin.file:
+        path: '{{config_root}}config/{{ item.path }}'
+        state: directory
+        mode: '777'
+      with_community.general.filetree: 'templates/config/'
+      when: item.state == 'directory'
+
+    - name: Copy over the config files
+      ansible.builtin.template:
+        src: '{{ item.src }}'
+        dest: '{{ config_root }}config/{{item.path}}'
+        mode: '777'
+      with_community.general.filetree: 'templates/config/'
+      when: item.state == 'file'
+    - name: Create docker_default_network
+      community.docker.docker_network:
+        name: docker_default_network
+    - name: Start the stack
+      community.docker.docker_compose:
+        project_src: "{{project_root}}vaultwarden/"
+        restarted: true

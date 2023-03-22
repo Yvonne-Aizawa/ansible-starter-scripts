@@ -1,0 +1,45 @@
+version: "3"
+services:
+  vaultwarden:
+    image: vaultwarden/server:latest
+    container_name: vaultwarden
+    restart: unless-stopped
+    networks:
+      - docker_default_network
+    ports:
+     - 9445:80 #map any custom port to use (replace 8445 not 80)
+    volumes:
+     - ../config/bitwarden:/data:rw
+    environment:
+     - ADMIN_TOKEN=${ADMIN_TOKEN}
+     - WEBSOCKET_ENABLED=true
+     - SIGNUPS_ALLOWED=true
+     - DOMAIN=${DOMAIN}
+    labels:
+      traefik.enable: true
+      traefik.http.routers.vaultwarden.entrypoints: websecure
+      traefik.http.routers.vaultwarden.rule: Host(`bitwarden.${DOMAIN_NAME}`)
+      traefik.http.routers.vaultwarden.tls: true
+      traefik.http.routers.vaultwarden.tls.certresolver: production
+      "traefik.http.routers.vaultwarden.tls.domains[0].main": bitwarden.${DOMAIN_NAME}
+      traefik.http.routers.vaultwarden.middlewares: default-auth@file
+      traefik.http.routers.vaultwarden.service: vaultwarden
+      traefik.http.services.vaultwarden.loadbalancer.server.port: 80 # if needed
+
+
+      traefik.http.routers.vaultwarden-ws.entrypoints: websecure
+      traefik.http.routers.vaultwarden-ws.rule: Host(`bitwarden.${DOMAIN_NAME}`) && Path(`/notifications/hub`)
+      traefik.http.routers.vaultwarden-ws.tls: true
+      traefik.http.routers.vaultwarden-ws.tls.certresolver: production
+      "traefik.http.routers.vaultwarden-ws.tls.domains[0].main": bitwarden.${DOMAIN_NAME}
+
+      traefik.http.routers.vaultwarden-ws.service: vaultwarden-ws
+      traefik.http.services.vaultwarden-ws.loadbalancer.server.port: 3012 # if needed
+      # flame dashboard labels
+      flame.type: application
+      flame.name: vaultwarden
+      flame.url: https://bitwarden.${DOMAIN_NAME}
+      flame.icon: lock # optional, default is "docker"
+networks:
+   docker_default_network:
+       external: true

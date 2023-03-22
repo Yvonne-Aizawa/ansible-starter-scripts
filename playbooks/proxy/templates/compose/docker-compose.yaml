@@ -31,6 +31,8 @@ services:
     networks:
       - docker_default_network
       - traefik_local
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
       # The HTTP port
       - "80:80"
