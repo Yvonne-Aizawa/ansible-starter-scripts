@@ -1,0 +1,21 @@
+version: '3.3'
+services:
+    plantuml-server:
+        restart: always
+        networks:
+          - docker_default_network
+        image: 'plantuml/plantuml-server:jetty'
+        labels:
+     # traefik labels
+          traefik.enable: true
+          traefik.http.routers.plantuml.entrypoints: websecure
+          traefik.http.routers.plantuml.rule: Host(`plantuml.${DOMAIN}`)
+          traefik.http.routers.plantuml.tls: true
+          traefik.http.routers.plantuml.tls.certresolver: production
+          "traefik.http.routers.plantuml.tls.domains[0].main": plantuml.${DOMAIN}
+          #traefik.http.routers.plantuml.middlewares: default-auth@file
+          traefik.http.routers.plantuml.service: plantuml
+          traefik.http.services.plantuml.loadbalancer.server.port: 8080 # if needed
+networks:
+   docker_default_network:
+       external: true

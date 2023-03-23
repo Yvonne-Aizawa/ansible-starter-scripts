@@ -8,6 +8,9 @@
     ./playbooks/vars/vault.yml
   roles:
     - docker
+    - powersettings
+    - update
+    - mysql
     - traefik
     - cockpit
     - archive_warrior
@@ -21,3 +24,10 @@
     - gitlab_runner
     - gotify
     - headscale
+    - languagetool
+    - media-stack
+    - nextcloud
+    - pihole
+    - plantuml
+    - syncthing
+    - vaultwarden
