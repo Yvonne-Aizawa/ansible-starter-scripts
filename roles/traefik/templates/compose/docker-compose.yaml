@@ -1,0 +1,213 @@
+version: "3.8"
+services:
+  reverse-proxy:
+    env_file: .env
+    depends_on:
+      - authelia
+      - docker-host
+    image: traefik:v2.9
+    container_name: traefik
+    cap_add: [ "NET_ADMIN", "NET_RAW" ]
+    command:
+      - '--api=true'
+      - '--api.dashboard=true'
+      - '--api.insecure=true'
+      - '--pilot.dashboard=false'
+      - '--global.sendAnonymousUsage=false'
+      - '--global.checkNewVersion=false'
+      - '--log=true'
+      - '--log.level=DEBUG'
+      - '--log.filepath=/var/log/traefik.log'
+      - '--providers.docker=true'
+      - '--providers.docker.exposedByDefault=false'
+      - '--entryPoints.http=true'
+      # - '--entryPoints.http.address=:8080/tcp'
+      - '--entryPoints.http.http.redirections.entryPoint.to=https'
+      - '--entryPoints.http.http.redirections.entryPoint.scheme=https'
+      # - '--experimental.hub=true'
+      # - '--hub.tls.insecure=true'
+      # - '--metrics.prometheus.addrouterslabels=true'
+    restart: unless-stopped
+    networks:
+      - docker_default_network
+      - traefik_local
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      # The HTTP port
+      - "80:80"
+      - "443:443"
+      - "8080:8080"
+    labels:
+      # traefik labels
+      traefik.enable: true
+      traefik.http.routers.traefik.entrypoints: websecure
+      traefik.http.routers.traefik.rule: Host(`traefik.${DOMAIN_NAME}`)
+      traefik.http.routers.traefik.tls: true
+      traefik.http.routers.traefik.tls.certresolver: {{ cert_provider }}
+      traefik.http.routers.traefik.tls.domains[0].main: ${DOMAIN_NAME}
+      traefik.http.routers.traefik.tls.domains[0].sans: traefik.${DOMAIN_NAME}
+      traefik.http.routers.traefik.service: api@internal
+      traefik.http.routers.traefik.middlewares: default-auth@file
+      # flame dashboard labels
+      flame.type: application
+      flame.name: traefik
+      flame.url: https://traefik.${DOMAIN_NAME}
+      flame.icon: server # optional, default is "docker"
+    volumes:
+      - ../config/traefik/traefik:/etc/traefik/
+      - ../config/traefik/plugins:/plugins-storage/
+      - ../config/traefik/logs:/var/log/traefik
+      - ../config/traefik/keys:/keys:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+  # hub-agent:
+  #   image: ghcr.io/traefik/hub-agent-traefik:v1.0.0
+  #   pull_policy: always
+  #   container_name: hub-agent
+  #   restart: "on-failure"
+  #   command:
+  #     - run
+  #     - --hub.token={{ traefik_hub_token}}
+  #     - --auth-server.advertise-url=http://hub-agent
+  #     - --traefik.host=traefik
+  #     - --traefik.tls.insecure=true
+  #   volumes:
+  #     - /var/run/docker.sock:/var/run/docker.sock
+  #   networks:
+  #   - docker_default_network
+  #   depends_on:
+  #     - reverse-proxy
+  docker-host:
+    # this is so traefik can access virtual machines and other devices on the host network (i think?)
+    container_name: docker-host
+    image: qoomon/docker-host
+    cap_add: [ "NET_ADMIN", "NET_RAW" ]
+    restart: always
+    networks:
+      - traefik_local
+  robots:
+    # ah yess a complete container for just a txt file
+    restart: unless-stopped
+    image: nginx:alpine
+    container_name: robots
+    networks:
+      - docker_default_network
+    volumes:
+      - ../config/traefik/robots/:/usr/share/nginx/html/:ro
+    labels:
+      traefik.enable: true
+      traefik.http.routers.robots.tls: true
+      traefik.http.routers.robots.rule: HostRegexp(`{host:.+}`) && Path(`/robots.txt`)
+      traefik.http.routers.robots.entrypoints: web, websecure
+
+      traefik.http.routers.robots.priority: 99
+  authelia:
+    # authentication its the forward auth of traefik
+    image: authelia/authelia
+    container_name: authelia
+    volumes:
+      - ../config/traefik/auth/config:/config
+    networks:
+      - docker_default_network
+    labels:
+      traefik.enable: true
+      traefik.http.routers.authelia.tls: true
+      traefik.http.routers.authelia.rule: Host(`auth.${DOMAIN_NAME}`)
+      traefik.http.routers.authelia.entrypoints: websecure
+      traefik.frontend.headers.STSSeconds: "31536000"
+      traefik.frontend.headers.STSIncludeSubdomains: "true"
+      traefik.frontend.headers.STSPreload: "true"
+
+      traefik.http.routers.authelia.tls.certresolver: {{ cert_provider }}
+      "traefik.http.routers.authelia.tls.domains[0].main": auth.${DOMAIN_NAME}
+      traefik.http.middlewares.authelia.forwardauth.address: http://authelia:9091/api/verify?rd=https://auth.${DOMAIN_NAME}
+      traefik.http.middlewares.authelia.forwardauth.trustForwardHeader: true
+      traefik.http.middlewares.authelia.forwardauth.authResponseHeaders: Remote-User,Remote-Groups,Remote-Name,Remote-Email
+    restart: unless-stopped
+    environment:
+      - TZ=Europe/Amsterdam
+    healthcheck:
+      disable: true
+    depends_on:
+      - redis
+      # - mariadb
+      - openldap
+  redis:
+    # authelia uses this for saving login tokens so they persist during server resets
+    env_file:
+      - .env
+    container_name: redis
+    image: bitnami/redis:latest
+    volumes:
+      - ../config/traefik/redis:/bitnami/
+    networks:
+      - docker_default_network
+    restart: unless-stopped
+  # mariadb:
+  #   # this is used by authelia to store users (or does it like i have openldap setup)
+  #   env_file:
+  #     - .env
+  #   container_name: mariadb
+  #   image: linuxserver/mariadb:latest
+  #   volumes:
+  #     - ../config/traefik/mariadb:/config
+  #   networks:
+  #     - docker_default_network
+  #   restart: unless-stopped
+  openldap:
+    # for shared users between services
+    image: osixia/openldap:latest
+    container_name: openldap
+    restart: unless-stopped
+    env_file: .env
+    networks:
+      - docker_default_network
+    tty: true
+    stdin_open: true
+    # volumes:
+    volumes:
+      - ../config/traefik/ldap/ldap:/var/lib/ldap
+      - ../config/traefik/ldap/slapd:/etc/ldap/slapd.d
+      - ../config/traefik/ldap/certs:/container/service/slapd/assets/certs/
+    ports:
+      - "389:389"
+      - "636:636"
+    # For replication to work correctly, domainname and hostname must be
+    # set correctly so that "hostname"."domainname" equates to the
+    # fully-qualified domain name for the host.
+    domainname: "${DOMAIN_NAME}"
+    hostname: "ldap"
+  phpldapadmin:
+    env_file:
+      - .env
+    # phpadmin but for ldap
+    image: osixia/phpldapadmin:latest
+    container_name: phpldapadmin
+    restart: unless-stopped
+    labels:
+      traefik.enable: true
+      traefik.http.routers.phpldapadmin.entrypoints: websecure
+      traefik.http.routers.phpldapadmin.rule: Host(`phpldapadmin.${DOMAIN_NAME}`)
+      traefik.http.routers.phpldapadmin.tls: true
+      traefik.http.routers.phpldapadmin.tls.certresolver: {{ cert_provider }}
+
+      "traefik.http.routers.phpldapadmin.tls.domains[0].main": phpldapadmin.${DOMAIN_NAME}
+      #  traefik.http.routers.phpldapadmin.service: phpldapadmin
+      #  traefik.http.services.phpldapadmin.loadbalancer.server.port: 1337 # if needed
+      traefik.http.routers.phpldapadmin.middlewares: default-auth@file
+      # flame dashboard labels
+      flame.type: application
+      flame.name: phpldapadmin
+      flame.url: https://phpldapadmin.${DOMAIN_NAME}
+      flame.icon: phpldapadmin # optional, default is "docker"
+    ports:
+      - 8787:80
+    networks:
+      - docker_default_network
+    depends_on:
+      - openldap
+
+networks:
+  docker_default_network:
+    external: true
+  traefik_local:

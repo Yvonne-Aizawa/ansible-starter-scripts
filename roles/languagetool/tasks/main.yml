@@ -1,0 +1,90 @@
+- name: Starting to install languagetool
+  ansible.builtin.include_vars:
+    file: ../vars/vault.yml
+- name: Make sure that project root exists
+  ansible.builtin.file:
+    path: "{{ project_root }}languagetool"
+    state: directory
+    mode: '777'
+- name: Make sure that config root exists
+  ansible.builtin.file:
+    path: "{{ config_root }}"
+    state: directory
+    mode: '777'
+- name: Ensure directory structure exists on host
+  ansible.builtin.file:
+    path: '{{project_root}}/{{ item.path }}'
+    state: directory
+    mode: '777'
+  with_community.general.filetree: 'templates/compose/'
+  when: item.state == 'directory'
+- name: Copy over the compose files
+  ansible.builtin.template:
+    src: '{{ item.src }}'
+    dest: '{{ project_root }}languagetool/{{item.path}}'
+    mode: '777'
+  with_community.general.filetree: 'templates/compose/'
+  when: item.state == 'file'
+- name: Ensure directory structure exists on host
+  ansible.builtin.file:
+    path: '{{config_root}}config/{{ item.path }}'
+    state: directory
+    mode: '777'
+  with_community.general.filetree: 'templates/config/'
+  when: item.state == 'directory'
+- name: Copy over the config files
+  ansible.builtin.template:
+    src: '{{ item.src }}'
+    dest: '{{ config_root }}config/{{item.path}}'
+    mode: '777'
+  with_community.general.filetree: 'templates/config/'
+  when: item.state == 'file'
+- name: Ensure directory structure exists on host
+  ansible.builtin.file:
+    path: '{{config_root}}config/languagetool/ngrams_zipped'
+    state: directory
+    mode: '777'
+- name: download en ngrams
+  ansible.builtin.get_url:
+    url: https://languagetool.org/download/ngram-data/ngrams-en-20150817.zip
+    dest: '{{ config_root }}config/languagetool/ngrams_zipped/ngrams-en-20150817.zip'
+- name: download nl ngrams
+  ansible.builtin.get_url:
+    url: https://languagetool.org/download/ngram-data/ngrams-nl-20181229.zip
+    dest: '{{ config_root }}config/languagetool/ngrams_zipped/ngrams-nl-20181229.zip'
+- name: Ensure config/languagetool/ngrams exists
+  ansible.builtin.file:
+    path: '{{config_root}}config/languagetool/ngrams'
+    state: directory
+    mode: '777'
+- name: Ensure config/languagetool/ngrams/nl exists
+  ansible.builtin.file:
+    path: '{{config_root}}config/languagetool/ngrams/nl'
+    state: directory
+    mode: '777'
+- name: Ensure config/languagetool/ngrams/en exists
+  ansible.builtin.file:
+    path: '{{config_root}}config/languagetool/ngrams/en'
+    state: directory
+    mode: '777'
+- name: Install unzip with apt
+  ansible.builtin.apt:
+    name: unzip
+    state: present
+- name: Extract dutch ngrams
+  ansible.builtin.unarchive:
+    src: '{{ config_root }}config/languagetool/ngrams_zipped/ngrams-nl-20181229.zip'
+    dest: '{{ config_root }}config/languagetool/ngrams/'
+    remote_src: true
+- name: Extract english ngrams
+  ansible.builtin.unarchive:
+    src: '{{ config_root }}config/languagetool/ngrams_zipped/ngrams-en-20150817.zip'
+    dest: '{{ config_root }}config/languagetool/ngrams/'
+    remote_src: true
+- name: Create docker_default_network
+  community.docker.docker_network:
+    name: docker_default_network
+- name: Start the stack
+  community.docker.docker_compose:
+    project_src: "{{project_root}}languagetool/"
+    restarted: true

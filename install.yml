@@ -1,0 +1,23 @@
+---
+- name: Install server
+  hosts: yvonnetake
+  become: true
+  vars:
+    user: yvonne
+  vars_files:
+    ./playbooks/vars/vault.yml
+  roles:
+    - docker
+    - traefik
+    - cockpit
+    - archive_warrior
+    - duplicati
+    - cyberchef
+    - epic-games-claimer
+    - fail2ban
+    - flame
+    - gitea
+    - gitlab
+    - gitlab_runner
+    - gotify
+    - headscale

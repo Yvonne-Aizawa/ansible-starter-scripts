@@ -1,0 +1,14 @@
+version: '3.3'
+services:
+    gitlab-runner:
+        networks:
+            - docker_default_network
+        container_name: gitlab-runner
+        restart: always
+        volumes:
+            - '/var/run/docker.sock:/var/run/docker.sock'
+            - '../config/gitlab_runner/:/etc/gitlab-runner'
+        image: 'gitlab/gitlab-runner:latest'
+networks:
+    docker_default_network:
+      external: true         

@@ -1,0 +1,50 @@
+version: '3.5'
+services:
+  headscale:
+    container_name: headscale
+    networks:
+    - docker_default_network
+    image: headscale/headscale:latest
+    volumes:
+    - ../config/headscale/etc/:/etc/headscale/
+    - ../config/headscale/data/:/var/lib/headscale
+    ports:
+    - 27896:8080
+    command: headscale serve
+    restart: unless-stopped
+    # depends_on:
+    # - postgres
+    labels:
+    - "traefik.enable=true"
+    - "traefik.http.routers.headscale.rule=Host(`headscale.${DOMAIN_NAME}`)"
+    - "traefik.http.routers.headscale.entrypoints=websecure"
+    - "traefik.http.routers.headscale.tls.certresolver=production"
+    - "traefik.http.services.headscale.loadbalancer.server.port=8080"
+  # postgres:
+  #   networks:
+  #   - docker_default_network
+  #   image: postgres:14
+  #   container_name: headscale_db
+  #   restart: unless-stopped
+  #   volumes:
+  #   - ../config/headscale/db/:/var/lib/postgresql/data
+  headscale-ui:
+    networks:
+    - docker_default_network
+    image: ghcr.io/gurucomputing/headscale-ui:latest
+    restart: unless-stopped
+    container_name: headscale-ui
+    labels:
+    - "traefik.enable=true"
+    - "traefik.http.routers.headscale_ui.rule=Host(`headscale.${DOMAIN_NAME}`) && PathPrefix(`/web/`)"
+    - "traefik.http.routers.headscale_ui.tls.domains[0].main=headscale.${DOMAIN_NAME}"
+    - "traefik.http.routers.headscale_ui.tls.domains[0].sans=${DOMAIN_NAME}"
+    - "traefik.http.routers.headscale_ui.entrypoints=websecure"
+    - "traefik.http.services.headscale_ui.loadbalancer.server.port=443"
+    - "traefik.http.services.headscale_ui.loadbalancer.server.scheme=https"
+    - "traefik.http.services.headscale_ui.loadbalancer.serversTransport=disableSSLCheck@file"
+    - "traefik.http.routers.headscale_ui.middlewares=default-auth@file"
+
+networks:
+  docker_default_network:
+    external: true

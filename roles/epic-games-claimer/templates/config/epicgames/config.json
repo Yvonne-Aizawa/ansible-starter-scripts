@@ -23,16 +23,15 @@
     {
       "type": "email",
       "smtpHost": "{{smtp_host}}",
-      "smtpPort": "{{ smtp_port }}",
+      "smtpPort": {{ smtp_port }},
       "emailSenderAddress": "Epic@{{smtp_sender_domain}}",
       "emailSenderName": "Epic Games Captchas",
-      "emailRecipientAddress": "{{smtp_reciver}}",
+      "emailRecipientAddress": "{{smtp_reciever}}",
       "secure": false,
       "auth": {
           "user": "{{smtp_auth_user}}",
           "pass": "{{smtp_auth_pass}}"
       }
     }
-
   ]
 }
