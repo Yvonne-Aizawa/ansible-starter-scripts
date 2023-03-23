@@ -1,0 +1,29 @@
+version: '3.6'
+
+services:
+  flame:
+    image: pawelmalak/flame
+    container_name: flame
+    networks:
+      - docker_default_network
+    volumes:
+      - ../config/flame/data:/app/data
+      - /var/run/docker.sock:/var/run/docker.sock # optional but required for Docker integration
+    environment:
+      - PASSWORD={{ flame_password }}
+    restart: unless-stopped
+    labels:
+      traefik.enable: true
+      traefik.http.routers.flame.entrypoints: websecure
+      traefik.http.routers.flame.rule: Host(`flame.${DOMAIN}`) || Host(`${DOMAIN}`)
+      traefik.http.routers.flame.tls: true
+      traefik.http.routers.flame.tls.certresolver: {{ cert_provider }}
+      traefik.http.routers.flame.tls.domains[0].main: ${DOMAIN}
+      traefik.http.routers.flame.tls.domains[0].sans: flame.${DOMAIN}
+      traefik.http.routers.flame.middlewares: default-auth@file
+
+
+# optional but required for Docker secrets (1)
+networks:
+  docker_default_network:
+    external: true

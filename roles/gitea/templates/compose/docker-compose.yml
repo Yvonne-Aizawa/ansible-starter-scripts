@@ -1,0 +1,36 @@
+version: "3"
+
+services:
+  server:
+    env_file:
+      - .env
+    hostname: gitea
+    image: gitea/gitea:1.15.8
+    networks:
+      - docker_default_network
+    container_name: gitea
+    restart: unless-stopped
+    labels:
+      # traefik labels
+      traefik.enable: true
+      traefik.http.routers.gitea.entrypoints: websecure
+      traefik.http.routers.gitea.rule: Host(`gitea.${DOMAIN_NAME}`)
+      traefik.http.routers.gitea.tls: true
+      traefik.http.routers.gitea.tls.certresolver: production
+      "traefik.http.routers.gitea.tls.domains[0].main": gitea.${DOMAIN_NAME}
+      traefik.http.routers.gitea.service: gitea
+      traefik.http.services.gitea.loadbalancer.server.port: 3000 # if needed
+      # flame dashboard labels
+      flame.type: application
+      flame.name: gitea
+      flame.url: https://gitea.${DOMAIN_NAME}
+      flame.icon: git # optional, default is "docker"
+    volumes:
+      - ../config/gitea/data:/data
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    ports:
+      - "222:22"
+networks:
+  docker_default_network:
+    external: true

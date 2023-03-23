@@ -1,0 +1,30 @@
+version: "3"
+
+services:
+  languagetool:
+    networks:
+      - docker_default_network
+    image: erikvl87/languagetool
+    container_name: languagetool
+    restart: unless-stopped
+
+    environment:
+        - langtool_languageModel=/ngrams  # OPTIONAL: Using ngrams data
+        - Java_Xms=512m  # OPTIONAL: Setting a minimal Java heap size of 512 mib
+        - Java_Xmx=1g  # OPTIONAL: Setting a maximum Java heap size of 1 Gib
+    volumes:
+        - ../config/languagetool/ngrams:/ngrams
+    labels:
+          traefik.enable: true
+          traefik.http.routers.languagetool.entrypoints: websecure
+          traefik.http.routers.languagetool.rule: Host(`languagetool.${DOMAIN}`)
+          traefik.http.routers.languagetool.tls: true
+          traefik.http.routers.languagetool.tls.certresolver: production
+          "traefik.http.routers.languagetool.tls.domains[0].main": languagetool.${DOMAIN}
+         # traefik.http.routers.languagetool.service: languagetool
+       #   traefik.http.services.languagetool.loadbalancer.server.port: 1337 # if needed
+    #      traefik.http.routers.languagetool.middlewares: default-auth@file
+        
+networks:
+    docker_default_network:
+      external: true         

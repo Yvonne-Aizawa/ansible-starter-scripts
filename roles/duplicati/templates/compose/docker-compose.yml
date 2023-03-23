@@ -1,0 +1,40 @@
+---
+version: "2.1"
+services:
+  duplicati:
+    image: lscr.io/linuxserver/duplicati:latest
+    container_name: duplicati
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Etc/UTC
+      # - CLI_ARGS= #optional
+    env_file:
+      - .env
+    networks:
+      - docker_default_network
+    volumes:
+      - ../config/duplicity/config:/config
+      - /volume1:/source:ro
+    restart: unless-stopped
+    labels:
+     # traefik labels
+
+      traefik.enable: true
+      traefik.http.routers.duplicati.entrypoints: websecure
+      traefik.http.routers.duplicati.rule: Host(`duplicati.${DOMAIN}`)
+      traefik.http.routers.duplicati.tls: true
+      traefik.http.routers.duplicati.tls.certresolver: production
+      "traefik.http.routers.duplicati.tls.domains[0].main": duplicati.${DOMAIN}
+      traefik.http.routers.duplicati.middlewares: default-auth@file
+
+      traefik.http.routers.duplicati.service: duplicati
+      traefik.http.services.duplicati.loadbalancer.server.port: 8200 # if needed
+      # flame dashboard labels
+      flame.type: application
+      flame.name: duplicati
+      flame.url: https://duplicati.${DOMAIN}
+      flame.icon: sync # optional, default is "docker"
+networks:
+   docker_default_network:
+       external: true

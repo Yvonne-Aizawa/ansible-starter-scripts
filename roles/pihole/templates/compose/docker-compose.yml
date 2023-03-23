@@ -1,0 +1,43 @@
+version: "3"
+
+# More info at https://github.com/pi-hole/docker-pi-hole/ and https://docs.pi-hole.net/
+services:
+  pihole:
+    container_name: pihole
+    networks:
+      - docker_default_network
+    image: pihole/pihole:latest
+    # For DHCP it is recommended to remove these ports and instead add: network_mode: "host"
+    ports:
+      - "53:53/tcp"
+      - "53:53/udp"
+    environment:
+      TZ: 'America/Chicago'
+
+    # Volumes store your data between container upgrades
+    volumes:
+      - '../config/pihole/pihole:/etc/pihole'
+      - '../config/pihole/dnsmasq:/etc/dnsmasq.d'
+    #   https://github.com/pi-hole/docker-pi-hole#note-on-capabilities
+    restart: unless-stopped
+    labels:
+     # traefik labels
+
+      traefik.enable: true
+      traefik.http.routers.pihole.entrypoints: websecure
+      traefik.http.routers.pihole.rule: Host(`pihole.${DOMAIN}`)
+      traefik.http.routers.pihole.tls: true
+      traefik.http.routers.pihole.tls.certresolver: production
+      "traefik.http.routers.pihole.tls.domains[0].main": pihole.${DOMAIN}
+      traefik.http.routers.pihole.middlewares: default-auth@file
+
+      traefik.http.routers.pihole.service: pihole
+      traefik.http.services.pihole.loadbalancer.server.port: 80 # if needed
+      # flame dashboard labels
+      flame.type: application
+      flame.name: pihole
+      flame.url: https://pihole.${DOMAIN}
+      flame.icon: sync # optional, default is "docker"
+networks:
+   docker_default_network:
+       external: true

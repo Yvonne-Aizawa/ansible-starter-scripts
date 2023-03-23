@@ -1,0 +1,132 @@
+###############################################################
+#                   Authelia configuration                    #
+###############################################################
+
+server:
+  host: 0.0.0.0
+  port: 9091
+log:
+  level: trace
+theme: dark
+# This secret can also be set using the env variables AUTHELIA_JWT_SECRET_FILE
+jwt_secret: "{{authelia_jwt_secret}}"
+
+default_redirection_url: https://auth.{{domain}}
+totp:
+  issuer: {{domain}}
+
+# duo_api:
+#  hostname: api-123456789.{DOMAIN}
+#  integration_key: ABCDEF
+#  # This secret can also be set using the env variables AUTHELIA_DUO_API_SECRET_KEY_FILE
+#  secret_key: 1234567890abcdefghifjkl
+
+authentication_backend:
+  ldap:
+    implementation: custom
+    url: ldap://openldap
+    timeout: 5s
+    start_tls: false
+    tls:
+      server_name: {{domain}}
+      skip_verify: true
+      minimum_version: TLS1.2
+    base_dn: {{ldap_base_dn}}
+    username_attribute: uid
+    users_filter: (&(objectClass=inetOrgPerson)({username_attribute}={input}))
+    #     additional_groups_dn: ou=ldap
+    groups_filter: (&(gid={dn}))
+    group_name_attribute: cn
+    mail_attribute: mail
+    display_name_attribute: displayName
+    user: CN=admin,DC=ldap,DC=yvonnetake,DC=nl
+
+    password: {{ ldap_admin_pass }}
+
+access_control:
+  default_policy: two_factor
+  rules:
+  - domain_regex: '([/?].*)?$'
+    policy: bypass
+    resources:
+    - '/favicon.ico'
+  # Rules applied to everyone
+  - domain: auth.{{domain}}
+    policy: bypass
+  - domain: flame.{{domain}}
+    policy: one_factor
+  - domain: {{domain}}
+    policy: one_factor
+  - domain: firefly.{{domain}}
+    policy: bypass
+    resources:
+    - '^/api/([/?].*)?$'
+    - '^/oauth/([/?].*)?$'
+  - domain: phpldapadmin.{{domain}}
+    policy: two_factor
+  - domain: gotify.{{domain}}
+    policy: bypass
+    resources:
+    - '^/message([/?].*)?$'
+    - '^/version([/?].*)?$'
+    - '^/current([/?].*)?$'
+    - '^/client([/?].*)?$'
+    - '^/application([/?].*)?$'
+    - '^/stream([/?].*)?$'
+  - domain: fireflyi.{{domain}}
+    policy: bypass
+    resources:
+    - '^/autoupload([/?].*)?$'
+  - domain: syncthing.{{domain}}
+    policy: bypass
+    resources:
+    - '^/rest([/?].*)?$'
+  - domain: transmission.{{domain}}
+    policy: bypass
+    resources:
+    - '^/transmission/rpc([/?].*)?$'
+    #    https://transmission.{DOMAIN}/transmission/rpc
+  - domain: kavita.{{domain}}
+    policy: bypass
+    resources:
+    - '^/api([/?].*)?$'
+  - domain: pihole.{{domain}}
+    policy: bypass
+    resources:
+    - '^/admin/api.php([/?].*)?$'
+session:
+  name: authelia_session
+  #  domain: {DOMAIN}
+  # This secret can also be set using the env variables AUTHELIA_SESSION_SECRET_FILE
+  secret: dRgUkXn2r5u8x/A?
+  expiration: 3600 # 1 hour
+  inactivity: 300 # 5 minutes
+  domain: {{domain}} # Should match whatever your root protected domain is
+  redis:
+    host: redis
+    port: 6379
+    #   # This secret can also be set using the env variables AUTHELIA_SESSION_REDIS_PASSWORD_FILE
+    password: {{redis_password}}
+
+regulation:
+  max_retries: 3 #retry 3 times
+  find_time: 1 # withing 2 min
+  ban_time: 1 # ban for 5 min
+
+
+storage:
+  encryption_key: "{{authelia_storage_encryption_key}}"
+  mysql:
+    host: db
+    port: 3306
+    database: authelia
+    username: authelia
+    password: "{{ mysql_authelia_pass}}"
+# storage:
+#   encryption_key:  {{authelia_storage_encryption_key}} # Now required
+#   local:
+#     path: /config/db.sqlite3
+
+notifier:
+  filesystem:
+    filename: /config/notification.txt
