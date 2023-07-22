@@ -1,0 +1,25 @@
+version: '3.3'
+services:
+    cyberchef:
+        restart: unless-stopped
+        image: mpepping/cyberchef
+        networks:
+          - docker_default_network
+        labels:
+          traefik.enable: true
+          traefik.http.routers.cyberchef.entrypoints: websecure
+          traefik.http.routers.cyberchef.rule: Host(`cyberchef.${DOMAIN}`)
+          traefik.http.routers.cyberchef.tls: true
+          traefik.http.routers.cyberchef.tls.certresolver: production
+          "traefik.http.routers.cyberchef.tls.domains[0].main": cyberchef.${DOMAIN}
+        #  traefik.http.routers.cyberchef.service: cyberchef
+        #  traefik.http.services.cyberchef.loadbalancer.server.port: 8000 # if needed
+          traefik.http.routers.cyberchef.middlewares: default-auth@file
+      # flame dashboard labels
+          flame.type: application
+          flame.name: cyberchef
+          flame.url: https://cyberchef.${DOMAIN}
+          flame.icon: chef # optional, default is "docker"
+networks:
+   docker_default_network:
+     external: true

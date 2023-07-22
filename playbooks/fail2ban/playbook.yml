@@ -1,0 +1,20 @@
+---
+- name: install fail2ban
+  hosts: "{{ host }}"
+  gather_facts: true
+  become: true
+  tasks:
+    - name: Starting to install fail2ban
+      ansible.builtin.include_vars:
+        file: ../vars/vault.yml
+    - name: Install fail2ban
+      ansible.builtin.apt:
+        name:
+          - fail2ban
+        state: present
+        update_cache: true
+    - name: Copy jail.conf to jail.local
+      ansible.builtin.copy:
+        src: /etc/fail2ban/jail.conf
+        remote_src: true
+        dest: /etc/fail2ban/jail.local

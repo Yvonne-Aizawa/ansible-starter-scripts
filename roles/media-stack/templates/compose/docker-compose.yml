@@ -1,0 +1,211 @@
+version: '2.1'
+
+services:
+    transmission-openvpn:
+        ports:
+            - 9091:9091
+        image: haugene/transmission-openvpn
+        container_name: transmission-openvpn
+        sysctls:
+            - "net.ipv6.conf.all.disable_ipv6=0"
+        networks:
+            - docker_default_network
+        volumes:
+            - ../config/media-stack/downloads:/downloads
+            - ../config/media-stack/transmission/config:/config
+            - /etc/localtime:/etc/localtime:ro
+        env_file:
+            - .env
+        cap_add:
+            - NET_ADMIN
+        logging:
+            driver: json-file
+            options:
+                max-size: 10m
+        restart: always
+        labels:
+            traefik.enable: true
+            traefik.http.routers.transmission.entrypoints: websecure
+            traefik.http.routers.transmission.rule: Host(`transmission.${DOMAIN}`)
+            traefik.http.routers.transmission.tls: true
+            traefik.http.routers.transmission.tls.certresolver: production
+            "traefik.http.routers.transmission.tls.domains[0].main": transmission.${DOMAIN}
+            traefik.http.routers.transmission.service: transmission
+            traefik.http.services.transmission.loadbalancer.server.port: 9091 # if needed
+            traefik.http.routers.transmission.middlewares: default-auth@file
+            #sonarr          
+            traefik.http.routers.sonarr.entrypoints: websecure
+            traefik.http.routers.sonarr.rule: Host(`sonarr.${DOMAIN}`)
+            traefik.http.routers.sonarr.tls: true
+            traefik.http.routers.sonarr.tls.certresolver: production
+            "traefik.http.routers.sonarr.tls.domains[0].main": sonarr.${DOMAIN}
+            traefik.http.routers.sonarr.service: sonarr
+            traefik.http.services.sonarr.loadbalancer.server.port: 8989 # if needed
+            traefik.http.routers.sonarr.middlewares: default-auth@file
+            #sonarr          
+            traefik.http.routers.radarr.entrypoints: websecure
+            traefik.http.routers.radarr.rule: Host(`radarr.${DOMAIN}`)
+            traefik.http.routers.radarr.tls: true
+            traefik.http.routers.radarr.tls.certresolver: production
+            "traefik.http.routers.radarr.tls.domains[0].main": radarr.${DOMAIN}
+            traefik.http.routers.radarr.service: radarr
+            traefik.http.services.radarr.loadbalancer.server.port: 7878 # if needed
+            traefik.http.routers.radarr.middlewares: default-auth@file
+            #readarr          
+            traefik.http.routers.readarr.entrypoints: websecure
+            traefik.http.routers.readarr.rule: Host(`readarr.${DOMAIN}`)
+            traefik.http.routers.readarr.tls: true
+            traefik.http.routers.readarr.tls.certresolver: production
+            "traefik.http.routers.readarr.tls.domains[0].main": readarr.${DOMAIN}
+            traefik.http.routers.readarr.service: readarr
+            traefik.http.services.readarr.loadbalancer.server.port: 8787 # if needed
+            traefik.http.routers.readarr.middlewares: default-auth@file
+            #jellyfin          
+            traefik.http.routers.jellyfin.entrypoints: websecure
+            traefik.http.routers.jellyfin.rule: Host(`jellyfin.${DOMAIN}`)
+            traefik.http.routers.jellyfin.tls: true
+            traefik.http.routers.jellyfin.tls.certresolver: production
+            "traefik.http.routers.jellyfin.tls.domains[0].main": jellyfin.${DOMAIN}
+            traefik.http.routers.jellyfin.service: jellyfin
+            traefik.http.services.jellyfin.loadbalancer.server.port: 8096 # if needed
+            traefik.http.routers.jellyfin.middlewares: default-auth@file
+            #prowlarr          
+            traefik.http.routers.prowlarr.entrypoints: websecure
+            traefik.http.routers.prowlarr.rule: Host(`prowlarr.${DOMAIN}`)
+            traefik.http.routers.prowlarr.tls: true
+            traefik.http.routers.prowlarr.tls.certresolver: production
+            "traefik.http.routers.prowlarr.tls.domains[0].main": prowlarr.${DOMAIN}
+            traefik.http.routers.prowlarr.service: prowlarr
+            traefik.http.services.prowlarr.loadbalancer.server.port: 9696 # if needed
+            traefik.http.routers.prowlarr.middlewares: default-auth@file
+            # kavita
+            traefik.http.routers.kavita.entrypoints: websecure
+            traefik.http.routers.kavita.rule: Host(`kavita.${DOMAIN}`)
+            traefik.http.routers.kavita.tls: true
+            traefik.http.routers.kavita.tls.certresolver: production
+            "traefik.http.routers.kavita.tls.domains[0].main": kavita.${DOMAIN}
+            traefik.http.routers.kavita.service: kavita
+            
+            traefik.http.services.kavita.loadbalancer.server.port: 5000 # if needed
+            traefik.http.routers.kavita.middlewares: default-auth@file
+            # flame dashboard labels
+            flame.type: application
+            flame.name: transmission
+            flame.url: https://transmission.${DOMAIN}
+            flame.icon: download # optional, default is "docker"
+
+    radarr:
+        image: linuxserver/radarr
+        network_mode: "service:transmission-openvpn"
+        # networks:
+        #     - docker_default_network
+        container_name: radarr
+        env_file:
+            - .env
+        depends_on:
+            - transmission-openvpn
+        volumes:
+            - ../config/media-stack/radarr/appdata/radarr:/config
+            - ../config/media-stack/downloads:/downloads
+            - ../config/media-stack/media:/media
+        restart: unless-stopped
+        labels:
+            flame.type: application
+            flame.name: radarr
+            flame.url: https://radarr.${DOMAIN}
+            flame.icon: radar # optional, default is "docker"
+    readarr:
+        image: lscr.io/linuxserver/readarr:develop
+        network_mode: "service:transmission-openvpn"
+        # networks:
+        #     - docker_default_network
+        container_name: readarr
+        env_file:
+            - .env
+        depends_on:
+            - transmission-openvpn
+        volumes:
+            - ../config/media-stack/readarr/appdata/radarr:/config
+            - ../config/media-stack/downloads:/downloads
+            - ../config/media-stack/media:/media
+        restart: unless-stopped
+        labels:
+            flame.type: application
+            flame.name: readarr
+            flame.url: https://readarr.${DOMAIN}
+            flame.icon: readar # optional, default is "docker"
+    sonarr:
+        image: linuxserver/sonarr
+        network_mode: "service:transmission-openvpn"
+        # networks:
+        #     - docker_default_network
+        container_name: sonarr
+        env_file:
+            - .env
+        depends_on:
+            - transmission-openvpn
+        volumes:
+            - ../config/media-stack/sonarr/appdata/sonarr:/config
+            - ../config/media-stack/downloads:/downloads
+            - ../config/media-stack/media:/media
+        restart: unless-stopped
+        labels:
+            flame.type: application
+            flame.name: sonarr
+            flame.url: https://sonarr.${DOMAIN}
+            flame.icon: sonar # optional, default is "docker"
+    jellyfin:
+        image: jellyfin/jellyfin:latest
+        restart: always
+        container_name: jellyfin
+        network_mode: "service:transmission-openvpn"
+        # networks:
+        #     - docker_default_network
+        volumes:
+            - ../config/media-stack/jellyfin/config:/config
+            - ../config/media-stack/jellyfin/cache:/cache
+            - ../config/media-stack/media:/media:ro
+            - /volume1/syncthing/sync/Music:/music:ro
+        depends_on:
+            - transmission-openvpn
+        labels:
+            flame.type: application
+            flame.name: jellyfin
+            flame.url: https://jellyfin.${DOMAIN}
+            flame.icon: movie # optional, default is "docker"
+    kavita:
+        image: kizaing/kavita:latest    # Change latest to nightly for latest develop builds (can't go back to stable)
+        container_name: kavita
+
+        network_mode: "service:transmission-openvpn"
+        # networks:
+        #     - docker_default_network
+        volumes:
+            - ../config/media-stack/media/books:/books            #
+            - ../config/media-stack/kavita/config:/kavita/config     # Change './data if you want to have the config files in a different place.
+        restart: unless-stopped
+        labels:
+            flame.type: application
+            flame.name: kavita
+            flame.url: https://kavita.${DOMAIN}
+            flame.icon: book # optional, default is "docker"
+    prowlarr:
+        image: lscr.io/linuxserver/prowlarr:develop
+        container_name: prowlarr
+        network_mode: "service:transmission-openvpn"
+        # networks:
+        #     - docker_default_network
+        depends_on:
+            - transmission-openvpn
+
+        volumes:
+            - ../config/media-stack/prowlarr/config:/config
+        restart: unless-stopped
+        labels:
+            flame.type: application
+            flame.name: prowlarr
+            flame.url: https://prowlarr.${DOMAIN}
+            flame.icon: tiger # optional, default is "docker"
+networks:
+    docker_default_network:
+        external: true

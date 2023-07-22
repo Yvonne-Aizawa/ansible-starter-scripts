@@ -1,0 +1,19 @@
+version: '3.8'
+services:
+  db:
+    env_file:
+      - .env
+    networks:
+      - docker_default_network
+    image: mysql:8.0
+    cap_add:
+      - SYS_NICE
+    restart: always
+    ports:
+      - '3306:3306'
+    volumes:
+      - ../config/database/mysql:/var/lib/mysql
+      # - ../config/db/init.sql:/docker-entrypoint-initdb.d/init.sql
+networks:
+  docker_default_network:
+    external: true

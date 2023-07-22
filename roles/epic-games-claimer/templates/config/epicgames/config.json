@@ -1,0 +1,37 @@
+{
+  "testNotifiers": false,
+  "searchStrategy": "promotion",
+  "runOnStartup": true,
+  "cronSchedule": "0 * * * *",
+  "logLevel": "info",
+  "webPortalConfig": {
+    "baseUrl": "https://epic.{{domain}}"
+  },
+  "accounts": [
+    {
+      "email": "{{epic_games_email}}",
+      "password": "{{epic_games_pass}}",
+      "totp": "{{epic_games_totp}}"
+    }
+  ],
+  "notifiers": [
+    {
+      "type": "gotify",
+      "apiUrl": "http://gotify:80",
+      "token": "{{epic_games_gotify}}"
+    },
+    {
+      "type": "email",
+      "smtpHost": "{{smtp_host}}",
+      "smtpPort": {{ smtp_port }},
+      "emailSenderAddress": "Epic@{{smtp_sender_domain}}",
+      "emailSenderName": "Epic Games Captchas",
+      "emailRecipientAddress": "{{smtp_reciever}}",
+      "secure": false,
+      "auth": {
+          "user": "{{smtp_auth_user}}",
+          "pass": "{{smtp_auth_pass}}"
+      }
+    }
+  ]
+}

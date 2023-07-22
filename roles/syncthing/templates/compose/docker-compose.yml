@@ -1,0 +1,42 @@
+version: "3"
+
+services:
+  syncthing:
+    networks:
+      - docker_default_network
+    image: linuxserver/syncthing
+    container_name: syncthing
+    restart: unless-stopped
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/London
+      - UMASK_SET=022
+    volumes:
+      - ../config/syncthing/config:/config
+      - /volume1/syncthing/sync:/sync
+    ports:
+      - 8384:8384
+      - 22000:22000
+      - 21027:21027/udp
+    labels:
+     # traefik labels
+
+      traefik.enable: true
+      traefik.http.routers.syncthing.entrypoints: websecure
+      traefik.http.routers.syncthing.rule: Host(`syncthing.${DOMAIN}`)
+      traefik.http.routers.syncthing.tls: true
+      traefik.http.routers.syncthing.tls.certresolver: production
+      "traefik.http.routers.syncthing.tls.domains[0].main": syncthing.${DOMAIN}
+      traefik.http.routers.syncthing.middlewares: default-auth@file
+
+      traefik.http.routers.syncthing.service: syncthing
+      traefik.http.services.syncthing.loadbalancer.server.port: 8384 # if needed
+      # flame dashboard labels
+      flame.type: application
+      flame.name: syncthing
+      flame.url: https://syncthing.${DOMAIN}
+      flame.icon: sync # optional, default is "docker"
+networks:
+   docker_default_network:
+       external: true

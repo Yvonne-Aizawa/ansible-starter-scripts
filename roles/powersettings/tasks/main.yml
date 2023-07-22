@@ -1,0 +1,4 @@
+- name: Update Powersettings
+  ansible.builtin.lineinfile:
+    dest: /etc/systemd/logind.conf
+    line: 'HandleLidSwitch=ignore'
